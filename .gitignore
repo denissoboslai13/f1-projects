@@ -1,0 +1,55 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---- Node / frontend (later) ----
+node_modules/
+dist/
+build/
+.vite/
+
+# ---- Secrets and local config ----
+.env
+.env.*
+!.env.example
+
+# ---- Source documents (FIA copyright) ----
+# Only meta.json (URLs, archive links, sha256) is committed.
+# Keep the PDFs backed up outside the repo.
+**/rules/**/*.pdf
+
+# ---- Local data that should not be committed ----
+# Database files and Docker volumes
+*.sqlite
+*.sqlite3
+*.db
+pgdata/
+postgres-data/
+
+# Caches (e.g. FastF1 cache)
+.cache/
+cache/
+
+# Logs
+*.log
+logs/
+
+# Scratch / temporary files
+tmp/
+scratch/
+
+# ---- OS and editor files ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+*.swp
