@@ -8,7 +8,26 @@ This is the first project in a personal motorsport section at `myname.dev/f1` (d
 
 Existing sites are hard to read. This project competes on clarity, traceability, and coverage.
 
-**Status:** planning complete, implementation not started.
+**Status (2026-11-06):** Phase 0 partly done. Appendix L 2022–2026 archived and verified against the rule summary. Monorepo created and pushed. Prototype Steps 0–2 done: uv + pytest set up in `super-licence/`; scope fixed (5 series, application years 2026–2027, bonuses excluded); CSV format decided (`super-licence/data/`, conventions in `PROTOTYPE_PLAN.md` Step 2). Steps 3–4 in progress: scales and seasons entered for all 5 series, standings for F2 2024–2025. No code yet. Next: the "To fix" lists in `PROTOTYPE_PLAN.md` Steps 3–4 (incl. a wrong FRECA 2023 scale), then more standings.
+
+## Repository layout
+
+One repo (`f1`) for both projects, because they share driver identities, event data, source storage, and deployment. Split later only if needed.
+
+```text
+f1/
+├── CLAUDE.md
+├── PROTOTYPE_PLAN.md          ← step-by-step prototype plan, read this to continue
+├── .gitignore
+├── super-licence/
+│   ├── pyproject.toml, uv.lock             ← uv project (Python >= 3.14, pytest dev dep)
+│   ├── data/                               ← drivers, scales, seasons, standings CSVs
+│   └── rules/appendix-l/<year>/meta.json   (+ PDF, not committed)
+└── stewards/                  ← later
+```
+
+- Do not create a `shared/` folder up front. Extract shared code when the stewards project actually needs it.
+- Folder names match the planned URLs (`f1/super-licence`, `f1/stewards`).
 
 ## Working with me
 
@@ -37,19 +56,36 @@ https://www.fia.com/regulation/category/662
 
 The regulations page lists the 2026 version as published on 23 June 2026. Treat Wikipedia and media articles as secondary references only.
 
-**Verification warning:** the rule summary below came from Wikipedia, Formula 1 coverage, and a bilingual 2025 copy of Appendix L. The official 2026 PDF was not read, and the general Supplement 1 conditions were not found in the reviewed section. Verify every rule against the official documents before implementing it.
+**Verification status:** the rule summary below was checked against the official Appendix L PDFs for 2022–2026 (Article 13 and Supplement 1) on 2026-11-04. Article numbers refer to 2026 unless stated. Items marked *not in Appendix L* come from secondary sources or are undefined, so treat them as provisional.
 
-Store each rule document version with:
+### Archived rule documents
 
-- document year
-- publication date
-- source URL
-- local archived copy
-- effective date or applicable seasons, once verified
+Stored in `super-licence/rules/appendix-l/<year>/`. Each folder has the PDF and a `meta.json`:
 
-Monitor the FIA Appendix L page for changes and alert me when it changes.
+```json
+{
+  "year": 2024,
+  "publication_date": "2024-12-11",
+  "source_url": "https://www.fia.com/regulation/category/662",
+  "file_url": "<direct PDF link>",
+  "archive_url": "<web.archive.org capture of file_url>",
+  "filename": "<pdf filename>",
+  "sha256": "<lowercase sha256 of the PDF>",
+  "fetch_date": "2026-11-04"
+}
+```
 
-## Rule summary to verify
+- PDFs are FIA copyright and are **not committed** (`**/rules/**/*.pdf` in `.gitignore`). Only `meta.json` is public, and anyone can verify a downloaded copy with the hash. Keep the PDFs backed up outside the repo.
+- A reissued document with a different hash is a **new record**, not a replacement.
+- Documents are bilingual (French/English side by side). Text extraction mixes the columns, so check rendered pages for anything subtle.
+- **The 2024 PDF is a redline** (pink = added, strikethrough = removed). Plain text extraction merges old and new text (e.g. "13.1.32", "53 points"). Read it visually.
+- Known drafting error: 13.1.3 a) in 2025 and 2026 still refers to "13.1.6 c)", which was renumbered to 13.1.5 c).
+
+Monitor the FIA Appendix L page for changes and alert me when it changes. Compare file hashes to detect reissues.
+
+## Rule summary (verified against Appendix L 2022–2026)
+
+Applicability (Supplement 1 notes i and ii, all years): each year's table applies to championships **completed** in that year, and points use the regulatory text of the year in which the **final championship result** was achieved. So a result keeps the scale of its own year.
 
 ### Main qualification
 
@@ -67,43 +103,61 @@ def qualifying_points(driver, year):
     return max(previous_three, current_window)
 ```
 
-The rule allowing the best three of four years applied only when the three-year window included 2021. Keep it only for historical calculations if needed.
+Article 13.1.5 a) (13.1.6 a) in 2022–2023). Normal full Super Licence threshold: 40 points.
 
-Normal full Super Licence threshold: 40 points.
+Historical best-of-N rule (only needed for applications up to 2024):
+
+| Document | Rule |
+| -------- | ---- |
+| 2022, 2023 | If a window includes **2020 or 2021**: window (i) becomes the best 3 of the previous 4 years, and window (ii) becomes the best 2 of the previous 3 years plus the current year. |
+| 2024 | Only window (i), only for **2021**: best 3 of the previous 4 years. |
+| 2025 onward | Removed. |
 
 ### Championship points
 
-- Points are based on final championship position.
-- Scales vary by championship and regulation year.
-- Old and new scales can coexist while older results remain valid.
+- Points are based on final championship position (top 10 only).
+- Each year's document has **one** scale per row. There are no "old scale" rows in 2022–2026. Older results use the document from their own year.
 
-Known examples requiring versioned rules:
+Scale changes for the first-batch series, 2022–2026:
 
-- IndyCar old and new scales
-- Super Formula old and new scales
-- DTM old and new scales
+| Series | Scale |
+| ------ | ----- |
+| F2 | 40-40-40-30-20-10-8-6-4-3, all years |
+| F3 | 30-25-20-15-12-9-7-5-3-2, all years |
+| FRECA | 25-20-15-10-7-5-3-2-1-0, all years |
+| Super Formula | 25-20-15-10-7-5-3-2-1-0 until 2024; **30-25-20-15-12-9-7-5-3-2 from 2025** |
+| IndyCar | 40-30-20-10-8-6-4-3-2-1 until 2025; **40-30-25-20-15-10-8-6-3-1 in 2026** |
+| DTM (later) | 15-12-10-7-5-3-2-1-0-0 until 2024; **6-4-2 from 2025** |
 
-### Calendar and field conditions
+### Calendar and field conditions (Supplement 1)
 
-- A championship season needs at least five events across at least three circuits.
-- Alternative circuit layouts count as separate circuits.
-- If fewer than 16 drivers start the first race of an event, points are reduced by 10% per missing driver.
-- If this happens at several events, use the event with the lowest number of starters.
-- Some North American series have an FIA-homologated circuit condition. Confirm the exact rule.
-- Some season-specific exceptions exist, such as F4 South East Asia at 50% in 2023.
+- At least **5 competitions**, with at least **72 hours** between the end of one competition and the start of the next.
+- At least **3 tracks**. An FIA-licensed alternative layout may count as a separate track.
+- Regularly sanctioned by its ASN, held on FIA-homologated tracks.
+- Karting is exempt from the first two criteria.
+- If fewer than 16 drivers start the **first race of a competition**, all of that championship's points are reduced by 10% per missing driver. If this happens at several competitions, the one with the fewest starters decides.
+- Temporary exception: championships ending in 2022 and no later than 31.03.2023 needed only 3 competitions, 2 tracks, and 10 starters for full points.
+- Rows marked `*` (IndyCar, Indy NXT, USF Pro 2000, NASCAR, IMSA, Supercars): "subject to all (road course) rounds being held on FIA homologated tracks".
+- F4 South East Asia 2023: 50% of points, with 3 events on 2 layouts. From the 2024 document also: F4 India 2023 at 100%, with 4 events on 2 layouts.
+- F4 age rule: a driver racing in certified F4 under 15 scores no points that year or the next 2.
+- Rows marked `**` in 2026 (FR Middle East and Oceania Trophies, F4 Middle East Trophy) are exempt from the 5-competition minimum.
 
 ### Combining championships
 
 - At most two championships can count from one calendar year.
 - The second championship must start after the first ends.
-- Confirm how the best valid combination is selected.
+- *Not in Appendix L:* how the best valid combination is selected.
 
 ### Bonus points
 
-- Free practice: 1 point for at least 100 km in a free practice session.
-- Free practice is limited to one point per World Championship event and 10 points in total.
-- Penalty-free season: 2 points for completing an entire FIA championship with a penalty point system without receiving penalty points.
-- Macau: F4 win = 2, FR win = 3, F3 win = 5.
+- **Free practice:** only for **Free Practice Only Super Licence** holders. 1 point per F1 event with at least 100 km in a free practice session, only if no penalty points were imposed, maximum 10 in total.
+  - 2022–2024: counted in the calendar year of the session, so they expire with the window.
+  - 2025 onward: "independent of the calendar year", so they effectively do not expire.
+- **Penalty-free season:** +2 for completing the whole championship without penalty points, only in "FIA Championships where a penalty points system is in place". *Not in Appendix L:* which championships those are. F2 and F3 clearly; FRECA and F4 to confirm; IndyCar and Super Formula do not apply.
+- **World Cup winners.** Appendix L does not mention Macau; the bonuses are tied to the FIA World Cup titles:
+  - 2022–2023: FIA F3 World Cup winner +5.
+  - 2024: FIA Formula Regional World Cup winner +3. The F3 World Cup bonus was removed.
+  - 2025 onward: FR World Cup winner +3, FIA F4 World Cup winner +2.
 
 ### Karting
 
@@ -122,17 +176,18 @@ When multiple drivers complete a season in the same car:
 | Bronze             |             50% |
 | No categorisation  |              0% |
 
-Confirm rounding and all edge cases.
+Since 2023, the FIA may calculate a categorisation for a driver who did not have one. *Not in Appendix L:* rounding.
 
 ### Other eligibility conditions
 
 Show these separately from the points total:
 
 - Grade A licence
-- age requirement and FIA discretion exception
+- age 18, with FIA discretion to grant at 17 (discretion added in 2024)
+- driving licence requirement (removed in 2024)
 - theory test
-- 80% of each of two full seasons in Supplement 1 single-seater championships for first-time applicants
-- previous licence holder routes
+- 80% of each of two full seasons in Supplement 1 single-seater championships for first-time applicants. *Not in Appendix L:* whether this means events or races. Working assumption from a secondary source: **events** (a driver who crashes in practice and misses the race still counts as having competed). Provisional.
+- previous licence holder routes, including 13.1.5 b): a former full Super Licence holder with 100 km in an F1 free practice session in the previous 3 years
 - FIA discretion and force-majeure routes, including the 30-point route
 - free-practice-only licence route, including the 25-point route
 
@@ -157,7 +212,7 @@ Single-seater championships first. Build this first batch before expanding:
 3. Karting
 4. GT, endurance, stock cars, and other categories, including shared-car handling
 
-Rows in the FIA table are not always one championship. For example, the F4 row covers many series, the LMP2 row combines several series, and old-scale rows are rule versions.
+Rows in the FIA table are not always one championship. For example, the F4 row covered many series until 2025 (2026 lists them individually), and the LMP2 row combines several series. Scale changes are handled by the year of the document, not by separate rows.
 
 ## Data to collect
 
@@ -194,12 +249,19 @@ Calculate calendar checks from completed event data where possible.
 
 - free practice sessions and distance
 - penalty records
-- Macau winners
+- FIA World Cup winners (F3 / Formula Regional / F4, depending on year)
 - karting results
 - crew lists
 - FIA driver categorisations
 
 Free practice distance and penalty-free data are likely hard. Find sources before assuming automation. Race results do not show licence penalty points.
+
+Planned approaches (not yet verified):
+
+- **Free practice distance:** FastF1 laps per session × circuit length. Store circuit length **per event**, because layouts change (e.g. Melbourne 2022, Barcelona 2023, Abu Dhabi 2021). Laps × length is an estimate because in- and out-laps are partial, so mark results within about one lap of 100 km as provisional. FastF1 does not show licence type or penalty points. Check FastF1 / F1 live timing terms and use its cache.
+- **Penalty points:** come from stewards' decision documents, not results. Plan a small FIA documents fetcher **inside the tracker** (Phase 2) for F2 and F3 decisions, extracting penalty points with simple pattern matching (check real PDFs first). The stewards analyzer reuses it later. Other series: manual entry or "unverified".
+- **Field size:** only the number of starters in the first race of each competition is needed. Use a manual season multiplier until automated; validation should flag any competition with fewer than 16 starters.
+- **Scaling to many series:** data volume is small; the cost is maintaining one adapter per source website. Automate the important series, enter the long tail by hand, and check whether series share a timing provider.
 
 ## Data model
 
@@ -277,13 +339,15 @@ If reliability becomes important, keep generating data on the mini PC but host s
 
 ### Phase 0: research
 
-- [ ] Download and archive applicable Appendix L versions.
-- [ ] Verify the rule summary against official text.
-- [ ] Build a rule-to-data matrix.
+- [x] Download and archive applicable Appendix L versions (2022–2026).
+- [x] Verify the rule summary against official text.
+- [ ] Build a rule-to-data matrix. Add the regulation year as a column on every rule row.
 - [ ] Audit 2023-2026 sources for the first five series.
 - [ ] Record each source's format, terms, starter availability, and fallback.
 
 ### Phase 1: manual proof of concept
+
+Detailed steps: `PROTOTYPE_PLAN.md`.
 
 - [ ] Create rule data for the required seasons.
 - [ ] Enter first-batch standings in CSV.
@@ -415,11 +479,20 @@ The analyzer can later supply penalty data to the Super Licence tracker.
 
 ## Open questions
 
-- Exact 2026 Supplement 1 conditions
-- Whether the 80% rule uses races, events, or another measure
-- How points are assigned for championships spanning calendar years
+Answered from Appendix L (2026-11-04):
+
+- ~~Exact 2026 Supplement 1 conditions~~ See "Calendar and field conditions".
+- ~~Which F4 championships are eligible~~ 2022–2025: one generic "National F4 certified by the FIA" row. 2026: 13 F4 championships named individually, plus the F4 Middle East Trophy at a lower scale.
+- Championships spanning calendar years: partly answered. Notes i and ii imply the year a championship **ends** decides the scale and which year it counts in. The window part is an interpretation.
+
+Still open (not defined in Appendix L 2022–2026):
+
+- Whether the 80% rule uses races or events (working assumption: events, provisional)
 - Rounding rules for reduced and shared-car points
 - How tied final positions are handled
-- Best sources for free practice distance
+- How the best two-championship combination is selected
+- Which championships count as having a penalty points system (FRECA, F4s?)
+- Whether F2/F3 decision PDFs state penalty points in a consistent, parseable way
+- Whether FastF1 FP data is complete for every needed session
 - Best sources for penalty records in each eligible FIA series
-- Which F4 championships are eligible for each season
+- Whether to ask the FIA directly about the undefined rules

@@ -1,0 +1,26 @@
+regulation_year,series_id,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,page,row_label,notes
+2022,f2,40,40,40,30,20,10,8,6,4,3,60,Formule 2 de la FIA / FIA Formula 2,
+2022,indycar,40,30,20,10,8,6,4,3,2,1,60,Indy Car / Indy Car *,* Subject to all (road course) rounds being held on FIA homologated tracks.
+2022,f3,30,25,20,15,12,9,7,5,3,2,60,Formule 3 de la FIA / FIA Formula 3,
+2022,freca,25,20,15,10,7,5,3,2,1,0,60,Championnat d’Europe de Formule Régionale par Alpine certifié par la FIA / Formula Regional European Championship by Alpine Certified by FIA,
+2022,super-formula,25,20,15,10,7,5,3,2,1,0,60,Japonese Super Formula / Japanese Super Formula,
+2023,f2,40,40,40,30,20,10,8,6,4,3,66,Formule 2 de la FIA / FIA Formula 2,
+2023,indycar,40,30,20,10,8,6,4,3,2,1,66,Indy Car / Indy Car *,* Subject to all (road course) rounds being held on FIA homologated tracks.
+2023,f3,30,25,20,15,12,9,7,5,3,2,66,Formule 3 de la FIA / FIA Formula 3,
+2023,freca,30,25,20,10,8,6,4,3,2,1,66,Championnat d’Europe de Formule Régionale par Alpine certifié par la FIA / Formula Regional European Championship by Alpine Certified by FIA,
+2023,super-formula,25,20,15,10,7,5,3,2,1,0,66,Japonese Super Formula / Japanese Super Formula,
+2024,f2,40,40,40,30,20,10,8,6,4,3,65,Formule 2 de la FIA / FIA Formula 2,
+2024,indycar,40,30,20,10,8,6,4,3,2,1,65,Indy Car / Indy Car *,* Subject to all (road course) rounds being held on FIA homologated tracks.
+2024,f3,30,25,20,15,12,9,7,5,3,2,65,Formule 3 de la FIA / FIA Formula 3,
+2024,freca,25,20,15,10,7,5,3,2,1,0,65,Championnat d’Europe de Formule Régionale par Alpine certifié par la FIA / Formula Regional European Championship by Alpine Certified by FIA,
+2024,super-formula,25,20,15,10,7,5,3,2,1,0,65,Japonese Super Formula / Japanese Super Formula,
+2025,f2,40,40,40,30,20,10,8,6,4,3,64,Formule 2 de la FIA / FIA Formula 2,
+2025,indycar,40,30,20,10,8,6,4,3,2,1,64,Indy Car / Indy Car *,* Subject to all (road course) rounds being held on FIA homologated tracks.
+2025,f3,30,25,20,15,12,9,7,5,3,2,64,Formule 3 de la FIA / FIA Formula 3,
+2025,freca,30,25,20,10,8,6,4,3,2,1,64,Championnat d’Europe de Formule Régionale par Alpine certifié par la FIA / Formula Regional European Championship by Alpine Certified by FIA,
+2025,super-formula,30,25,20,15,12,9,7,5,3,2,64,Japonese Super Formula / Japanese Super Formula,
+2026,f2,40,40,40,30,20,10,8,6,4,3,64,Formule 2 de la FIA / FIA Formula 2,
+2026,indycar,40,30,25,20,15,10,8,6,3,1,64,Indy Car / Indy Car *,* Subject to all (road course) rounds being held on FIA homologated tracks
+2026,f3,30,25,20,15,12,9,7,5,3,2,64,Formule 3 de la FIA / FIA Formula 3,
+2026,freca,25,20,15,10,7,5,3,2,1,0,64,Championnat d’Europe de Formule Régionale de la FIA / FIA Formula Regional European Championship,
+2026,super-formula,30,25,20,15,12,9,7,5,3,2,64,Japonese Super Formula / Japanese Super Formula,
