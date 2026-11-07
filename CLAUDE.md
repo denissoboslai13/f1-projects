@@ -8,7 +8,7 @@ This is the first project in a personal motorsport section at `myname.dev/f1` (d
 
 Existing sites are hard to read. This project competes on clarity, traceability, and coverage.
 
-**Status (2026-11-06):** Phase 0 partly done. Appendix L 2022–2026 archived and verified against the rule summary. Monorepo created and pushed. Prototype Steps 0–2 done: uv + pytest set up in `super-licence/`; scope fixed (5 series, application years 2026–2027, bonuses excluded); CSV format decided (`super-licence/data/`, conventions in `PROTOTYPE_PLAN.md` Step 2). Steps 3–4 in progress: scales and seasons entered for all 5 series, standings for F2 2024–2025. No code yet. Next: the "To fix" lists in `PROTOTYPE_PLAN.md` Steps 3–4 (incl. a wrong FRECA 2023 scale), then more standings.
+**Status (2026-11-07):** Phase 0 partly done. Appendix L 2022–2026 archived and verified against the rule summary. Monorepo created and pushed. Prototype Steps 0–4 done enough for a pilot: scales for all 5 series (2022–2026, data errors fixed), seasons for all 5 series, standings for F2 2023–2025 (two sources each). Step 5 in progress: `super-licence/src/super_licence/` package with `models.py` and `load.py`; `load_drivers` done and tested. Next: `load_standings`, then seasons/scales loaders, then validation checks (see `PROTOTYPE_PLAN.md` Step 5).
 
 ## Repository layout
 
@@ -20,8 +20,10 @@ f1/
 ├── PROTOTYPE_PLAN.md          ← step-by-step prototype plan, read this to continue
 ├── .gitignore
 ├── super-licence/
-│   ├── pyproject.toml, uv.lock             ← uv project (Python >= 3.14, pytest dev dep)
+│   ├── pyproject.toml, uv.lock             ← uv project (Python >= 3.14, pytest dev dep, uv_build)
 │   ├── data/                               ← drivers, scales, seasons, standings CSVs
+│   ├── src/super_licence/                  ← models.py, load.py (validate.py, engine.py later)
+│   ├── tests/                              ← pytest; tests/fixtures/ for deliberately broken CSVs
 │   └── rules/appendix-l/<year>/meta.json   (+ PDF, not committed)
 └── stewards/                  ← later
 ```

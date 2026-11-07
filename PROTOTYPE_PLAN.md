@@ -11,12 +11,13 @@ hand-entered data.
 | 0. Housekeeping | Done (2026-11-06) |
 | 1. Fix the scope | Done (2026-11-06) |
 | 2. Design data files | Done (2026-11-06) |
-| 3. Rule data | Entered for all 5 series, 2022–2026. One known error to fix (see Step 3). |
-| 4. Standings | In progress: F2 2024 and 2025 entered. Seasons file complete for 2022–2026. |
-| 5–9 | Not started |
+| 3. Rule data | Done for all 5 series, 2022–2026 (FRECA 2023/2025 fixed 2026-11-07). |
+| 4. Standings | Enough for the pilot: F2 2023–2025 (two sources each). More later, before Step 8. |
+| 5. Loading + validation | In progress: package layout set up, `drivers.csv` loader done with tests. |
+| 6–9 | Not started |
 
-Last updated: 2026-11-06. Next: work through the "To fix" lists in Steps 3 and 4,
-then continue entering standings (F2 2023 and 2026, then the other series).
+Last updated: 2026-11-07. Next: `load_standings` (Step 5a), then seasons and scales
+loaders, then the cross-file checks (Step 5b).
 
 ---
 
@@ -116,11 +117,12 @@ Conventions:
 
 To fix:
 
-- [ ] **FRECA 2023 is wrong:** entered `30,25,20,10,8,6,4,3,2,1`, which is the Formula E
+- [x] **FRECA 2023 was wrong:** entered `30,25,20,10,8,6,4,3,2,1`, which is the Formula E
   row directly above it on page 66. Correct: `25,20,15,10,7,5,3,2,1,0` (checked
   against the PDF text 2026-11-06).
-- [ ] Rows with an empty `notes` have 16 fields (`,,` at the end); should be 15 (one trailing comma).
-- [ ] Optional: IndyCar 2026 `notes` is missing the final period that the other years have.
+- [x] Rows with an empty `notes` have 16 fields (`,,` at the end); should be 15 (one trailing comma).
+- [x] Optional: IndyCar 2026 `notes` is missing the final period that the other years have.
+- [x] FRECA 2025 had the same Formula E copy error; fixed to `25,20,15,10,7,5,3,2,1,0` (2026-11-07).
 - Idea for Step 5: warn when a series' scale changes between years without a note.
 
 ## Step 4: Enter standings
@@ -138,23 +140,53 @@ Super Formula 2026 `in_progress`). `standings.csv` has F2 2024 and 2025 (top 10)
 
 To fix:
 
-- [ ] `fetch_date` is `2026-06-11` on all rows, should be `2026-11-06` (ISO is yyyy-mm-dd).
-- [ ] "Richard Vershoor" → **Richard Verschoor**: fix `driver_id` (`richard-verschoor`),
+- [x] `fetch_date` is `2026-06-11` on all rows, should be `2026-11-06` (ISO is yyyy-mm-dd).
+- [x] "Richard Vershoor" → **Richard Verschoor**: fix `driver_id` (`richard-verschoor`),
   `display_name`, and his two standings rows.
-- [ ] `seasons.csv`: F3 2026 `end_date` is `2023-09-13`, should be 2026.
-- [ ] `seasons.csv`: rows have 9 fields, should be 8 (one trailing comma, not two).
-- [ ] `drivers.csv`: rows have 3 fields, add the trailing comma for `notes`.
-- [ ] Standings currently use Wikipedia as `source_url` with no second source but are
+- [x] `seasons.csv`: F3 2026 `end_date` is `2023-09-13`, should be 2026.
+- [x] `seasons.csv`: rows have 9 fields, should be 8 (one trailing comma, not two).
+- [x] `drivers.csv`: rows have 3 fields, add the trailing comma for `notes`.
+- [x] Standings currently use Wikipedia as `source_url` with no second source but are
   marked `confirmed`. Move Wikipedia to `second_source_url`, add the official
   standings as `source_url`, or mark `provisional` until then.
 - [ ] Optional: many `seasons.csv` sources are pre-season calendars; replace with
   final-round results where easy.
 
-Remaining entry: F2 2023 and 2026, then F3, FRECA, IndyCar, Super Formula for 2023–2026.
+**Status 2026-11-07:** F2 2023–2025 entered (top 10, Wikipedia + Motorsport.com, `confirmed`),
+24 drivers. Decided this is enough to build Steps 5–7; engine edge cases (scale changes,
+multipliers, window (ii)) are tested with fixtures, not real data.
 
-## Step 5: Validation checks
+Remaining entry (before Step 8): F3 and FRECA 2023–2025 (needed for most published
+totals), then IndyCar, Super Formula and 2026 standings.
 
-A script that stops and lists problems:
+## Step 5: Loading and validation checks
+
+**Set up 2026-11-07.** `src/` layout, installed by `uv sync` (`uv_build` backend), tests in
+`tests/`, run with `uv run pytest`.
+
+```text
+src/super_licence/
+├── models.py   ← frozen dataclasses: Driver, Issue (add Standing, Season, Scale)
+├── load.py     ← read_rows, blank_to_none, load_drivers
+└── validate.py ← later: cross-row / cross-file checks
+tests/
+├── test_load.py
+└── fixtures/drivers_broken.csv   ← deliberately broken data lives here, never in data/
+```
+
+**5a. Loaders** (one per file). Pattern: `load_x(path) -> (list[X], list[Issue])`. Per row:
+short row (`None in row.values()`) → issue + `continue`; empty required field → issue +
+`continue`; optional fields via `blank_to_none`; line number = `enumerate(..., start=2)`.
+A broken row is reported and skipped, never half-loaded. Tests assert exact counts and
+issue line numbers, not just "some issues".
+
+- [x] `load_drivers` + tests (real file: 24 drivers, no issues; broken fixture: 1 driver, issues on lines 3 and 4)
+- [ ] `load_standings`: convert `position` with `int(...)`, catch `ValueError` → issue;
+  `series_points` as a number (decide float vs Decimal once, use it everywhere)
+- [ ] `load_seasons`: `date.fromisoformat(end_date)`, `multiplier` as a number
+- [ ] `load_scales`: gather `p1`–`p10` into a tuple of 10
+
+**5b. Checks across rows and files** (`validate.py`), on the loaded records:
 
 - duplicate or missing positions, and position gaps
 - driver IDs not in `drivers`
