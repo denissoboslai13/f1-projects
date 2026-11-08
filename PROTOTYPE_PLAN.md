@@ -13,11 +13,11 @@ hand-entered data.
 | 2. Design data files | Done (2026-11-06) |
 | 3. Rule data | Done for all 5 series, 2022–2026 (FRECA 2023/2025 fixed 2026-11-07). |
 | 4. Standings | Enough for the pilot: F2 2023–2025 (two sources each). More later, before Step 8. |
-| 5. Loading + validation | In progress: package layout set up, `drivers.csv` loader done with tests. |
+| 5. Loading + validation | In progress: all 4 loaders work on the real data. Their fixes, cleanup and tests are still open, and the cross-file checks (5b) haven't started. |
 | 6–9 | Not started |
 
-Last updated: 2026-11-07. Next: `load_standings` (Step 5a), then seasons and scales
-loaders, then the cross-file checks (Step 5b).
+Last updated: 2026-11-08. Next: work through the "Open before moving on" list in
+Step 5a, then the cross-file checks (Step 5b).
 
 ---
 
@@ -166,8 +166,8 @@ totals), then IndyCar, Super Formula and 2026 standings.
 
 ```text
 src/super_licence/
-├── models.py   ← frozen dataclasses: Driver, Issue (add Standing, Season, Scale)
-├── load.py     ← read_rows, blank_to_none, load_drivers
+├── models.py   ← frozen dataclasses: Driver, Issue, Standing, Season, Scale
+├── load.py     ← read_rows, blank_to_none, empty_required, one loader per file
 └── validate.py ← later: cross-row / cross-file checks
 tests/
 ├── test_load.py
@@ -181,10 +181,44 @@ A broken row is reported and skipped, never half-loaded. Tests assert exact coun
 issue line numbers, not just "some issues".
 
 - [x] `load_drivers` + tests (real file: 24 drivers, no issues; broken fixture: 1 driver, issues on lines 3 and 4)
-- [ ] `load_standings`: convert `position` with `int(...)`, catch `ValueError` → issue;
-  `series_points` as a number (decide float vs Decimal once, use it everywhere)
-- [ ] `load_seasons`: `date.fromisoformat(end_date)`, `multiplier` as a number
-- [ ] `load_scales`: gather `p1`–`p10` into a tuple of 10
+- [x] `load_standings`: bad rows checked by hand, positive test only (real file: 30 rows, no issues)
+- [x] `load_seasons`: works on the real file (25 rows, no issues); see open list below
+- [x] `load_scales`: `p1`–`p10` gathered into a tuple; works on the real file (25 rows, no issues); see open list below
+
+Decided 2026-11-07: `Decimal` for `multiplier` and `series_points` (totals are compared
+against a hard 40-point threshold, and floats can drift), `date` for dates, tuple for scale
+points (a dict inside a frozen dataclass can still be changed).
+
+**Open before moving on** (status 2026-11-08; `uv run pytest` passes 6 tests, but two of them only print).
+Loader behaviour below was checked by running broken rows through each loader.
+
+Bugs:
+
+- [ ] `load_seasons`: `multiplier_reason` isn't wrapped in `blank_to_none`, so empty gives `''` instead of `None`.
+- [ ] `load_seasons`: `multiplier` of `NaN` crashes the loader (`InvalidOperation` on the `<`
+  comparison, outside the `try`). Check `is_finite()` first.
+- [ ] `load_seasons`: `multiplier` of `10` and `0` load with no issue. Planned check: `0 < multiplier <= 1`.
+- [ ] `load_scales`: negative points load with no issue.
+- [ ] `load_drivers`: `nationality` is now required (`optional={"notes"}`), but Step 2 says it's
+  optional. Decide which one is right, then fix the code or the convention.
+
+Cleanup:
+
+- [ ] Remove the leftover `Scale` docstring between `load_seasons` and `load_scales` in `load.py`.
+- [ ] `load_standings`: the "series_points is not finite" message also fires for negative values.
+- [ ] `load_scales`: `except` doesn't need `InvalidOperation` (no `Decimal` there); build `points`
+  with a generator instead of listing `p1`–`p10`.
+- [ ] Move the repeated row-length and empty-field checks into a helper.
+- [ ] Optional: a bad `Decimal` gives the unhelpful message `[<class 'decimal.ConversionSyntax'>]`.
+
+Tests:
+
+- [ ] `test_season_class` and `test_scale_class` only print. Add `issues == []`, row counts and a
+  full first-row comparison.
+- [ ] Scales: assert Super Formula `points` differ between 2024 and 2025.
+- [ ] Standings: find the 214.5 row by driver and season, not `standings[10]`.
+- [ ] Add broken fixtures with exact line numbers: `standings_broken.csv`, `seasons_broken.csv`,
+  `scales_broken.csv`. Each bug above gets a row, and `drivers_broken.csv` gets a row with too many fields.
 
 **5b. Checks across rows and files** (`validate.py`), on the loaded records:
 

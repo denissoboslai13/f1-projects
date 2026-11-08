@@ -8,7 +8,7 @@ This is the first project in a personal motorsport section at `myname.dev/f1` (d
 
 Existing sites are hard to read. This project competes on clarity, traceability, and coverage.
 
-**Status (2026-11-07):** Phase 0 partly done. Appendix L 2022–2026 archived and verified against the rule summary. Monorepo created and pushed. Prototype Steps 0–4 done enough for a pilot: scales for all 5 series (2022–2026, data errors fixed), seasons for all 5 series, standings for F2 2023–2025 (two sources each). Step 5 in progress: `super-licence/src/super_licence/` package with `models.py` and `load.py`; `load_drivers` done and tested. Next: `load_standings`, then seasons/scales loaders, then validation checks (see `PROTOTYPE_PLAN.md` Step 5).
+**Status (2026-11-08):** Phase 0 partly done. Appendix L 2022–2026 archived and verified against the rule summary. Monorepo created and pushed. Prototype Steps 0–4 done enough for a pilot: scales for all 5 series (2022–2026, data errors fixed), seasons for all 5 series, standings for F2 2023–2025 (two sources each). Step 5 in progress: `super-licence/src/super_licence/` package with `models.py` and `load.py`; all 4 loaders work on the real data, but their bug fixes, cleanup and tests are still open. Next: the "Open before moving on" list, then validation checks (see `PROTOTYPE_PLAN.md` Step 5).
 
 ## Repository layout
 
