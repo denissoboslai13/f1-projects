@@ -16,8 +16,8 @@ hand-entered data.
 | 5. Loading + validation | In progress: all 4 loaders work on the real data. Their fixes, cleanup and tests are still open, and the cross-file checks (5b) haven't started. |
 | 6–9 | Not started |
 
-Last updated: 2026-11-08. Next: work through the "Open before moving on" list in
-Step 5a, then the cross-file checks (Step 5b).
+Last updated: 2026-11-09. Next: work through the "Open before moving on" list in
+Step 5a and stop there for that session. The cross-file checks (Step 5b) come after.
 
 ---
 
@@ -189,22 +189,67 @@ Decided 2026-11-07: `Decimal` for `multiplier` and `series_points` (totals are c
 against a hard 40-point threshold, and floats can drift), `date` for dates, tuple for scale
 points (a dict inside a frozen dataclass can still be changed).
 
-**Open before moving on** (status 2026-11-08; `uv run pytest` passes 6 tests, but two of them only print).
-Loader behaviour below was checked by running broken rows through each loader.
+**Open before moving on** (status 2026-11-09; `uv run pytest` passes 6 tests, but two of them only print).
+Loader behaviour below was checked by running broken rows through each loader. The real CSVs
+load with no issues, so all of this is about handling bad data in future.
+
+Suggested order: `read_rows`, shared helper, bugs and new field checks, fixtures and tests,
+then update this plan and commit.
+
+`read_rows` and file-level problems (found 2026-11-09; these change `read_rows`, which every
+loader uses, so do them first and update `test_read_drivers`):
+
+- [ ] Excel's "CSV UTF-8" format crashes with `KeyError: 'driver_id'` because of the BOM. Open
+  with `encoding="utf-8-sig"`.
+- [ ] Line numbers are wrong after a blank line or a multi-line quoted field (an issue on line 4
+  is reported as line 3). Use `reader.line_num` instead of `enumerate`.
+- [ ] A missing or renamed column crashes with `KeyError`. Compare `reader.fieldnames` to the
+  expected columns and report an issue on line 1.
+- [ ] An empty or header-only file returns 0 rows and no issues. Report an issue.
+
+Starting point:
+
+```python
+def read_rows(path: Path, expected: set[str]) -> tuple[list[tuple[int, dict]], list[Issue]]:
+    with open(path, encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        # TODO: compare reader.fieldnames to expected; on a mismatch return [] and an Issue on line 1
+        rows = [(reader.line_num, row) for row in reader]
+    # TODO: no rows -> Issue
+    ...
+```
+
+New field checks (found 2026-11-09):
+
+- [ ] Stray spaces: `" a "` loads as a driver ID and won't match anything later. Strip values in
+  the shared helper, after the row-length check because short rows contain `None`.
+- [ ] Unknown `series_id`: `F2` loads as a separate series. Check against the fixed list of 5.
+- [ ] A multiplier below 1 with no `multiplier_reason` loads with no issue. Require the reason.
+- [ ] `confirmed` with no `second_source_url` loads with no issue, which breaks the Step 2 rule.
+  Report an issue, or downgrade the row to `provisional`.
+
+Left as they are on purpose:
+
+- A missing or non-UTF-8 file crashes loudly, which fits "stop and alert".
+- URL format and future `fetch_date` aren't checked: low value for hand-entered data.
+- Implausible seasons like `25` load in `load_standings`; Step 5b can catch them.
 
 Bugs:
 
 - [ ] `load_seasons`: `multiplier_reason` isn't wrapped in `blank_to_none`, so empty gives `''` instead of `None`.
 - [ ] `load_seasons`: `multiplier` of `NaN` crashes the loader (`InvalidOperation` on the `<`
   comparison, outside the `try`). Check `is_finite()` first.
-- [ ] `load_seasons`: `multiplier` of `10` and `0` load with no issue. Planned check: `0 < multiplier <= 1`.
+- [ ] `load_seasons`: `multiplier` of `10`, `0` and `Infinity` load with no issue. Planned check: `0 < multiplier <= 1`.
 - [ ] `load_scales`: negative points load with no issue.
 - [ ] `load_drivers`: `nationality` is now required (`optional={"notes"}`), but Step 2 says it's
-  optional. Decide which one is right, then fix the code or the convention.
+  optional. Decide which one is right, then fix the code or the convention. Suggestion: optional,
+  which matches Step 2 and `Driver.nationality: str | None`. All 24 current drivers load either
+  way, and line 4 of `drivers_broken.csv` still fails because it's too short.
 
 Cleanup:
 
-- [ ] Remove the leftover `Scale` docstring between `load_seasons` and `load_scales` in `load.py`.
+- [x] Remove the leftover `Scale` docstring between `load_seasons` and `load_scales` in `load.py`.
+  Removed, but not committed as of 2026-11-09.
 - [ ] `load_standings`: the "series_points is not finite" message also fires for negative values.
 - [ ] `load_scales`: `except` doesn't need `InvalidOperation` (no `Decimal` there); build `points`
   with a generator instead of listing `p1`–`p10`.
@@ -227,6 +272,12 @@ Tests:
 - series and season combinations with no scale for that year
 - a driver appearing in more than one championship in a year. That needs a
   manual check for the two-championship rule, which the prototype won't calculate.
+- `end_date` year differs from `season` (would have caught the F3 2026 typo). Warning only,
+  because a championship can span two calendar years.
+- a scale whose points rise instead of fall
+
+Rough versions of the first three checks and the two above found nothing wrong in the real
+data on 2026-11-09. Those were throwaway scripts, so this still needs building.
 
 - **Done when:** clean data passes, and data you've broken on purpose fails.
 
