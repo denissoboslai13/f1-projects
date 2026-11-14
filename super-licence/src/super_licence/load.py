@@ -5,32 +5,37 @@ from decimal import Decimal, InvalidOperation
 from datetime import date
 
 SERIES = {'f2', 'f3', 'freca', 'super-formula', 'indycar'}
+POINT_COLUMNS = [f"p{i}" for i in range(1, 11)]   # ["p1", "p2", ..., "p10"]
+DRIVER_COLUMNS = {"driver_id", "display_name", "nationality", "notes"}
+STANDING_COLUMNS = {"series_id", "season", "driver_id", "position", "series_points",
+                    "source_url", "fetch_date", "second_source_url", "status", "notes"}
+SEASON_COLUMNS = {"series_id", "season", "end_date", "status", "multiplier",
+                  "multiplier_reason", "source_url", "notes"}
+SCALE_COLUMNS = {"regulation_year", "series_id", *POINT_COLUMNS, "page", "row_label", "notes"}
 
-def read_rows(path: Path) -> list[dict[str, str]]:
-    with open(path, encoding="utf-8-sig", newline="") as f:
-        return list(csv.DictReader(f))
+def clean_row(row: dict) -> dict:
+    return {key: value.strip() if isinstance(value, str) else value for key, value in row.items()}
 
-"""def read_rows(path: Path, expected: set[str]) -> tuple[list[tuple[int, dict]], list[Issue]]:
-    issues = []
+def read_rows(path: Path, expected: set[str]) -> tuple[list[tuple[int, dict[str, str]]], list[Issue]]:
     with open(path, encoding="utf-8-sig", newline="") as f:
         reader = csv.DictReader(f)
-        # TODO: compare reader.fieldnames to expected; on a mismatch return [] and an Issue on line 1
-        print(reader.fieldnames, expected)
-        if len(reader.fieldnames) != len(expected):
-            issues.append(Issue(file=path.name, line=1, message="field length mismatch"))
-            return [[], issues]
-        for el in reader.fieldnames:
-            if el not in expected:
-                issues.append(Issue(file=path.name, line=1, message="field names mismatch"))
-                return [[], issues]
-    # TODO: no rows -> Issue
-        if len(reader.fieldnames) < 1:
-            issues.append(Issue(file=path.name, line=1, message="fieldnames is less than one"))
-            return [[], issues]
+        header = reader.fieldnames
 
-        rows = [(reader.line_num, row) for row in reader]
-        return rows, issues
-"""
+        if header is None:
+            return [], [Issue(file=path.name, line=1, message="file is empty")]
+
+        missing = expected - set(header)
+        extra = set(header) - expected
+        if missing or extra:
+            return [], [Issue(file=path.name, line=1, message=f"wrong columns, missing: {sorted(missing)}, unexpected: {sorted(extra)}")]
+        if len(header) != len(set(header)):
+            return [], [Issue(file=path.name, line=1, message="duplicate column name")]
+
+        rows = [(reader.line_num, clean_row(row)) for row in reader]
+
+    if not rows:
+        return [], [Issue(file=path.name, line=1, message="no data rows")]
+    return rows, []
 
 def blank_to_none(value: str) -> str | None:
     if value == "":
@@ -39,7 +44,6 @@ def blank_to_none(value: str) -> str | None:
     return value
 
 def empty_required(row: dict[str, str], optional: set[str]) -> list[str]:
-    """Names of the columns that are empty and not optional."""
     empty = []
     for key in row.keys():
         item = row[key].strip()
@@ -53,10 +57,17 @@ def check_series_id(row: dict[str, str]):
 
     return True
 
+def parse_field(row: dict[str, str], column: str, convert):
+    try:
+        return convert(row[column])
+    except (ValueError, InvalidOperation):
+        raise ValueError(f"column {column} has bad value of {row[column]}")
+
+
 def load_drivers(path: Path) -> tuple[list[Driver], list[Issue]]:
     drivers = []
-    issues = []
-    for line, row in enumerate(read_rows(path), start=2):
+    rows, issues = read_rows(path, DRIVER_COLUMNS)
+    for line, row in rows:
         if None in row.values() or None in row:
             issues.append(Issue(file=path.name, line=line, message="Wrong number of fields"))
             continue
@@ -70,9 +81,9 @@ def load_drivers(path: Path) -> tuple[list[Driver], list[Issue]]:
 
 def load_standings(path: Path) -> tuple[list[Standing], list[Issue]]:
     standings = []
-    issues = []
     statuses = {"confirmed", "provisional", "manual"}
-    for line, row in enumerate(read_rows(path), start=2):
+    rows, issues = read_rows(path, STANDING_COLUMNS)
+    for line, row in rows:
         if None in row.values() or None in row:
             issues.append(Issue(file=path.name, line=line, message="Wrong number of fields"))
             continue
@@ -81,11 +92,11 @@ def load_standings(path: Path) -> tuple[list[Standing], list[Issue]]:
             issues.append(Issue(file=path.name, line=line, message=f"empty: {', '.join(empty)}"))
             continue
         try:
-            season = int(row["season"])
-            position = int(row["position"])
-            series_points = Decimal(row["series_points"])
-            fetch_date = date.fromisoformat(row["fetch_date"])
-        except (ValueError, InvalidOperation) as e:
+            season = parse_field(row, "season", int)
+            position = parse_field(row, "position", int)
+            series_points = parse_field(row, "series_points", Decimal)
+            fetch_date = parse_field(row, "fetch_date", date.fromisoformat)
+        except ValueError as e:
             issues.append(Issue(file=path.name, line=line, message=f"issue with parsing data: {e}"))
             continue
         if position < 1:
@@ -109,9 +120,9 @@ def load_standings(path: Path) -> tuple[list[Standing], list[Issue]]:
 
 def load_seasons(path: Path) -> tuple[list[Season], list[Issue]]:
     seasons = []
-    issues = []
     statuses = {"completed", "in_progress"}
-    for line, row in enumerate(read_rows(path), start=2):
+    rows, issues = read_rows(path, SEASON_COLUMNS)
+    for line, row in rows:
         if None in row.values() or None in row:
             issues.append(Issue(file=path.name, line=line, message="Wrong number of fields"))
             continue
@@ -120,14 +131,14 @@ def load_seasons(path: Path) -> tuple[list[Season], list[Issue]]:
             issues.append(Issue(file=path.name, line=line, message=f"empty: {', '.join(empty)}"))
             continue
         try:
-            season = int(row["season"])
-            multiplier = Decimal(row["multiplier"])
-            end_date = date.fromisoformat(row["end_date"])
-        except (ValueError, InvalidOperation) as e:
+            season = parse_field(row, "season", int)
+            multiplier = parse_field(row, "multiplier", Decimal)
+            end_date = parse_field(row, "end_date", date.fromisoformat)
+        except ValueError as e:
             issues.append(Issue(file=path.name, line=line, message=f"issue with parsing data: {e}"))
             continue
-        if not multiplier.is_finite() or multiplier < Decimal("0.0") or multiplier > Decimal("1.0"):
-            issues.append(Issue(file=path.name, line=line, message="multiplier is negative"))
+        if not multiplier.is_finite() or multiplier <= Decimal("0.0") or multiplier > Decimal("1.0"):
+            issues.append(Issue(file=path.name, line=line, message="multiplier is outside normal range"))
             continue
         if multiplier < Decimal("1.0") and row["multiplier_reason"] == "":
             issues.append(Issue(file=path.name, line=line, message="multiplier is not 1 but no reason was given"))
@@ -144,8 +155,8 @@ def load_seasons(path: Path) -> tuple[list[Season], list[Issue]]:
 
 def load_scales(path: Path) -> tuple[list[Scale], list[Issue]]:
     scales = []
-    issues = []
-    for line, row in enumerate(read_rows(path), start=2):
+    rows, issues = read_rows(path, SCALE_COLUMNS)
+    for line, row in rows:
         if None in row.values() or None in row:
             issues.append(Issue(file=path.name, line=line, message="Wrong number of fields"))
             continue
@@ -154,14 +165,17 @@ def load_scales(path: Path) -> tuple[list[Scale], list[Issue]]:
             issues.append(Issue(file=path.name, line=line, message=f"empty: {', '.join(empty)}"))
             continue
         try:
-            regulation_year = int(row["regulation_year"])
-            points = (int(row["p1"]), int(row["p2"]), int(row["p3"]), int(row["p4"]), int(row["p5"]), int(row["p6"]), int(row["p7"]), int(row["p8"]), int(row["p9"]), int(row["p10"]))
-            page = int(row["page"])
-        except (ValueError, InvalidOperation) as e:
+            regulation_year = parse_field(row, "regulation_year", int)
+            points = tuple(parse_field(row, col, int) for col in POINT_COLUMNS)
+            page = parse_field(row, "page", int)
+        except ValueError as e:
             issues.append(Issue(file=path.name, line=line, message=f"issue with parsing data: {e}"))
             continue
         if not check_series_id(row):
             issues.append(Issue(file=path.name, line=line, message="series not recognized"))
+            continue
+        if any(p < 0 for p in points):
+            issues.append(Issue(file=path.name, line=line, message="points include negative value"))
             continue
         s = Scale(regulation_year=regulation_year, series_id=row["series_id"], points=points, page=page, row_label=row["row_label"], notes=blank_to_none(row["notes"]))
         scales.append(s)
