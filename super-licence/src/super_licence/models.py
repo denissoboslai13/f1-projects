@@ -12,8 +12,9 @@ class Driver:
 @dataclass(frozen=True)
 class Issue:
     file: str
-    line: int
+    line: int | None
     message: str
+    severity: str = "error"
 
 @dataclass(frozen=True)
 class Scale:
