@@ -12,12 +12,12 @@ hand-entered data.
 | 1. Fix the scope | Done (2026-11-06) |
 | 2. Design data files | Done (2026-11-06) |
 | 3. Rule data | Done for all 5 series, 2022–2026 (FRECA 2023/2025 fixed 2026-11-07). |
-| 4. Standings | Enough for the pilot: F2 2023–2025 (two sources each). More later, before Step 8. |
-| 5. Loading + validation | In progress: all 4 loaders work on the real data. Their fixes, cleanup and tests are still open, and the cross-file checks (5b) haven't started. |
+| 4. Standings | 2023–2025 done for all 5 series (top 10, two sources each, 150 rows, 89 drivers; 2026-11-15). 2026 still to enter. |
+| 5. Loading + validation | 5a done (2026-11-14). 5b in progress: unknown drivers and position checks done with tests (2026-11-15); the rest still open. |
 | 6–9 | Not started |
 
-Last updated: 2026-11-09. Next: work through the "Open before moving on" list in
-Step 5a and stop there for that session. The cross-file checks (Step 5b) come after.
+Last updated: 2026-11-15. Next: the remaining Step 5b checks, starting with
+`check_scales_exist` and the duplicate-driver-in-season check.
 
 ---
 
@@ -156,8 +156,24 @@ To fix:
 24 drivers. Decided this is enough to build Steps 5–7; engine edge cases (scale changes,
 multipliers, window (ii)) are tested with fixtures, not real data.
 
-Remaining entry (before Step 8): F3 and FRECA 2023–2025 (needed for most published
-totals), then IndyCar, Super Formula and 2026 standings.
+~~Remaining entry (before Step 8): F3 and FRECA 2023–2025 (needed for most published
+totals), then IndyCar, Super Formula and 2026 standings.~~
+
+**Status 2026-11-15:** all 5 series entered for 2023–2025: 15 seasons × top 10 = 150 rows,
+all `confirmed` with two different sources; `drivers.csv` has 89 drivers. 2022 standings
+skipped on purpose (no 2022 result counts for application years 2026–2027). New second
+source for several series: motorsportstandings.com (results per season).
+
+A one-off script found nothing wrong: no duplicate driver in a season, no near-identical
+driver IDs, every driver used, a season row and a scale for every standing (by `end_date`
+year), no driver in two series in one year, and series points never rise down the order.
+
+Still open:
+
+- [ ] 2026 standings (`provisional` while seasons are in progress; F2 runs until December).
+- [ ] Optional: F2, F3 and FRECA use Wikipedia as `source_url` for most rows. Step 2 says
+  the official standings go in `source_url` and Wikipedia in `second_source_url`.
+- [ ] Before any scraping of motorsportstandings.com, check its terms and robots.txt.
 
 ## Step 5: Loading and validation checks
 
@@ -168,9 +184,10 @@ totals), then IndyCar, Super Formula and 2026 standings.
 src/super_licence/
 ├── models.py   ← frozen dataclasses: Driver, Issue, Standing, Season, Scale
 ├── load.py     ← read_rows, blank_to_none, empty_required, one loader per file
-└── validate.py ← later: cross-row / cross-file checks
+└── validate.py ← cross-row / cross-file checks, one small function each
 tests/
 ├── test_load.py
+├── test_validate.py   ← records built in Python with dataclasses.replace, plus one real-data test
 └── fixtures/drivers_broken.csv   ← deliberately broken data lives here, never in data/
 ```
 
@@ -189,7 +206,10 @@ Decided 2026-11-07: `Decimal` for `multiplier` and `series_points` (totals are c
 against a hard 40-point threshold, and floats can drift), `date` for dates, tuple for scale
 points (a dict inside a frozen dataclass can still be changed).
 
-**Open before moving on** (status 2026-11-09; `uv run pytest` passes 6 tests, but two of them only print).
+**Done 2026-11-14** (commit 4b3cf00). Real-data row counts were removed from `test_load.py`
+on 2026-11-15 so adding data doesn't break tests; fixture counts stay.
+
+~~Open before moving on~~ (status 2026-11-09; `uv run pytest` passes 6 tests, but two of them only print).
 Loader behaviour below was checked by running broken rows through each loader. The real CSVs
 load with no issues, so all of this is about handling bad data in future.
 
@@ -199,13 +219,13 @@ then update this plan and commit.
 `read_rows` and file-level problems (found 2026-11-09; these change `read_rows`, which every
 loader uses, so do them first and update `test_read_drivers`):
 
-- [ ] Excel's "CSV UTF-8" format crashes with `KeyError: 'driver_id'` because of the BOM. Open
+- [x] Excel's "CSV UTF-8" format crashes with `KeyError: 'driver_id'` because of the BOM. Open
   with `encoding="utf-8-sig"`.
-- [ ] Line numbers are wrong after a blank line or a multi-line quoted field (an issue on line 4
+- [x] Line numbers are wrong after a blank line or a multi-line quoted field (an issue on line 4
   is reported as line 3). Use `reader.line_num` instead of `enumerate`.
-- [ ] A missing or renamed column crashes with `KeyError`. Compare `reader.fieldnames` to the
+- [x] A missing or renamed column crashes with `KeyError`. Compare `reader.fieldnames` to the
   expected columns and report an issue on line 1.
-- [ ] An empty or header-only file returns 0 rows and no issues. Report an issue.
+- [x] An empty or header-only file returns 0 rows and no issues. Report an issue.
 
 Starting point:
 
@@ -221,11 +241,11 @@ def read_rows(path: Path, expected: set[str]) -> tuple[list[tuple[int, dict]], l
 
 New field checks (found 2026-11-09):
 
-- [ ] Stray spaces: `" a "` loads as a driver ID and won't match anything later. Strip values in
+- [x] Stray spaces: `" a "` loads as a driver ID and won't match anything later. Strip values in
   the shared helper, after the row-length check because short rows contain `None`.
-- [ ] Unknown `series_id`: `F2` loads as a separate series. Check against the fixed list of 5.
-- [ ] A multiplier below 1 with no `multiplier_reason` loads with no issue. Require the reason.
-- [ ] `confirmed` with no `second_source_url` loads with no issue, which breaks the Step 2 rule.
+- [x] Unknown `series_id`: `F2` loads as a separate series. Check against the fixed list of 5.
+- [x] A multiplier below 1 with no `multiplier_reason` loads with no issue. Require the reason.
+- [x] `confirmed` with no `second_source_url` loads with no issue, which breaks the Step 2 rule.
   Report an issue, or downgrade the row to `provisional`.
 
 Left as they are on purpose:
@@ -236,12 +256,12 @@ Left as they are on purpose:
 
 Bugs:
 
-- [ ] `load_seasons`: `multiplier_reason` isn't wrapped in `blank_to_none`, so empty gives `''` instead of `None`.
-- [ ] `load_seasons`: `multiplier` of `NaN` crashes the loader (`InvalidOperation` on the `<`
+- [x] `load_seasons`: `multiplier_reason` isn't wrapped in `blank_to_none`, so empty gives `''` instead of `None`.
+- [x] `load_seasons`: `multiplier` of `NaN` crashes the loader (`InvalidOperation` on the `<`
   comparison, outside the `try`). Check `is_finite()` first.
-- [ ] `load_seasons`: `multiplier` of `10`, `0` and `Infinity` load with no issue. Planned check: `0 < multiplier <= 1`.
-- [ ] `load_scales`: negative points load with no issue.
-- [ ] `load_drivers`: `nationality` is now required (`optional={"notes"}`), but Step 2 says it's
+- [x] `load_seasons`: `multiplier` of `10`, `0` and `Infinity` load with no issue. Planned check: `0 < multiplier <= 1`.
+- [x] `load_scales`: negative points load with no issue.
+- [x] `load_drivers`: `nationality` is now required (`optional={"notes"}`), but Step 2 says it's
   optional. Decide which one is right, then fix the code or the convention. Suggestion: optional,
   which matches Step 2 and `Driver.nationality: str | None`. All 24 current drivers load either
   way, and line 4 of `drivers_broken.csv` still fails because it's too short.
@@ -250,34 +270,40 @@ Cleanup:
 
 - [x] Remove the leftover `Scale` docstring between `load_seasons` and `load_scales` in `load.py`.
   Removed, but not committed as of 2026-11-09.
-- [ ] `load_standings`: the "series_points is not finite" message also fires for negative values.
-- [ ] `load_scales`: `except` doesn't need `InvalidOperation` (no `Decimal` there); build `points`
+- [x] `load_standings`: the "series_points is not finite" message also fires for negative values.
+- [x] `load_scales`: `except` doesn't need `InvalidOperation` (no `Decimal` there); build `points`
   with a generator instead of listing `p1`–`p10`.
-- [ ] Move the repeated row-length and empty-field checks into a helper.
-- [ ] Optional: a bad `Decimal` gives the unhelpful message `[<class 'decimal.ConversionSyntax'>]`.
+- [x] Move the repeated row-length and empty-field checks into a helper.
+- [x] Optional: a bad `Decimal` gives the unhelpful message `[<class 'decimal.ConversionSyntax'>]`.
 
 Tests:
 
-- [ ] `test_season_class` and `test_scale_class` only print. Add `issues == []`, row counts and a
+- [x] `test_season_class` and `test_scale_class` only print. Add `issues == []`, row counts and a
   full first-row comparison.
-- [ ] Scales: assert Super Formula `points` differ between 2024 and 2025.
-- [ ] Standings: find the 214.5 row by driver and season, not `standings[10]`.
-- [ ] Add broken fixtures with exact line numbers: `standings_broken.csv`, `seasons_broken.csv`,
+- [x] Scales: assert Super Formula `points` differ between 2024 and 2025.
+- [x] Standings: find the 214.5 row by driver and season, not `standings[10]`.
+- [x] Add broken fixtures with exact line numbers: `standings_broken.csv`, `seasons_broken.csv`,
   `scales_broken.csv`. Each bug above gets a row, and `drivers_broken.csv` gets a row with too many fields.
 
 **5b. Checks across rows and files** (`validate.py`), on the loaded records:
 
-- duplicate or missing positions, and position gaps
-- driver IDs not in `drivers`
-- series and season combinations with no scale for that year
-- a driver appearing in more than one championship in a year. That needs a
-  manual check for the two-championship rule, which the prototype won't calculate.
-- `end_date` year differs from `season` (would have caught the F3 2026 typo). Warning only,
-  because a championship can span two calendar years.
-- a scale whose points rise instead of fall
+Decided 2026-11-15: `Issue` got `line: int | None` (cross-file issues aren't about one CSV
+line, so the key goes in the message) and `severity: str = "error"` ("warning" for checks
+that need a manual look, so publishing stops on errors only). The scale for a standing is
+found through its season's `end_date` year, not the `season` column (Step 2 convention).
 
-Rough versions of the first three checks and the two above found nothing wrong in the real
-data on 2026-11-09. Those were throwaway scripts, so this still needs building.
+- [x] `check_positions`: duplicate positions and gaps, grouped by `(series_id, season)`
+- [x] `check_unknown_drivers`: driver IDs not in `drivers`
+- [x] `test_real_data_passes_checks`: the real CSVs load with no issues and pass both checks
+- [ ] `check_scales_exist`: standing with no season row, or no scale for the season's `end_date` year (error)
+- [ ] the same driver twice in one season (error; found while writing the tests)
+- [ ] a driver in more than one championship in a year, by `end_date` year (warning). That needs a
+  manual check for the two-championship rule, which the prototype won't calculate.
+- [ ] `end_date` year differs from `season` (would have caught the F3 2026 typo). Warning only,
+  because a championship can span two calendar years.
+- [ ] a scale whose points rise instead of fall (non-increasing is fine, F2 is 40-40-40)
+- [ ] Optional: a series' scale changes between years with an empty `notes` (warning)
+- [ ] `validate_all` runs every check (it currently ends with `+ ...`, so don't call it yet)
 
 - **Done when:** clean data passes, and data you've broken on purpose fails.
 
