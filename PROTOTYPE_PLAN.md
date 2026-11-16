@@ -13,11 +13,11 @@ hand-entered data.
 | 2. Design data files | Done (2026-11-06) |
 | 3. Rule data | Done for all 5 series, 2022–2026 (FRECA 2023/2025 fixed 2026-11-07). |
 | 4. Standings | 2023–2025 done for all 5 series (top 10, two sources each, 150 rows, 89 drivers; 2026-11-15). 2026 still to enter. |
-| 5. Loading + validation | 5a done (2026-11-14). 5b in progress: unknown drivers and position checks done with tests (2026-11-15); the rest still open. |
+| 5. Loading + validation | Done. 5a 2026-11-14, 5b 2026-11-16 (7 checks + `validate_all`, real data passes, 35 tests). |
 | 6–9 | Not started |
 
-Last updated: 2026-11-15. Next: the remaining Step 5b checks, starting with
-`check_scales_exist` and the duplicate-driver-in-season check.
+Last updated: 2026-11-16. Next: Step 6, the rules engine (season points first).
+Optional 5b follow-up: a `validate_all` test with broken input that trips several checks.
 
 ---
 
@@ -295,15 +295,18 @@ found through its season's `end_date` year, not the `season` column (Step 2 conv
 - [x] `check_positions`: duplicate positions and gaps, grouped by `(series_id, season)`
 - [x] `check_unknown_drivers`: driver IDs not in `drivers`
 - [x] `test_real_data_passes_checks`: the real CSVs load with no issues and pass both checks
-- [ ] `check_scales_exist`: standing with no season row, or no scale for the season's `end_date` year (error)
-- [ ] the same driver twice in one season (error; found while writing the tests)
-- [ ] a driver in more than one championship in a year, by `end_date` year (warning). That needs a
+- [x] `check_scales_exist`: standing with no season row, or no scale for the season's `end_date` year (error)
+- [x] the same driver twice in one season (error; found while writing the tests): `check_duplicate_drivers`
+- [x] a driver in more than one championship in a year, by `end_date` year (warning). That needs a
   manual check for the two-championship rule, which the prototype won't calculate.
-- [ ] `end_date` year differs from `season` (would have caught the F3 2026 typo). Warning only,
+  `check_two_series_per_year`. Real data 2023–2025 gives no hits (checked independently 2026-11-16).
+- [x] `end_date` year differs from `season` (would have caught the F3 2026 typo). Warning only,
   because a championship can span two calendar years.
-- [ ] a scale whose points rise instead of fall (non-increasing is fine, F2 is 40-40-40)
-- [ ] Optional: a series' scale changes between years with an empty `notes` (warning)
-- [ ] `validate_all` runs every check (it currently ends with `+ ...`, so don't call it yet)
+- [x] a scale whose points rise instead of fall (non-increasing is fine, F2 is 40-40-40)
+- [ ] ~~Optional: a series' scale changes between years with an empty `notes` (warning)~~ Skipped.
+- [x] `validate_all` runs every check; `test_real_data_passes_checks` uses it
+- [ ] Optional: a `validate_all` test with broken input that trips several checks (so a check
+  dropped from `validate_all` is noticed; clean data gives `[]` either way)
 
 - **Done when:** clean data passes, and data you've broken on purpose fails.
 

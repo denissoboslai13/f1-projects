@@ -8,7 +8,7 @@ This is the first project in a personal motorsport section at `myname.dev/f1` (d
 
 Existing sites are hard to read. This project competes on clarity, traceability, and coverage.
 
-**Status (2026-11-15):** Phase 0 partly done. Appendix L 2022–2026 archived and verified against the rule summary. Monorepo created and pushed. Prototype Steps 0–4 done: scales and seasons for all 5 series (2022–2026), standings for all 5 series 2023–2025 (top 10, two sources each, 89 drivers); 2026 standings still to enter. Step 5a (loaders, fixes, tests) done. Step 5b in progress in `validate.py`: unknown-driver and position checks done with tests, including a real-data test. Next: the remaining 5b checks (see `PROTOTYPE_PLAN.md` Step 5b).
+**Status (2026-11-16):** Phase 0 partly done. Appendix L 2022–2026 archived and verified against the rule summary. Monorepo created and pushed. Prototype Steps 0–5 done: scales and seasons for all 5 series (2022–2026), standings for all 5 series 2023–2025 (top 10, two sources each, 89 drivers); 2026 standings still to enter. Loaders and `validate.py` (7 cross-file checks + `validate_all`) done with tests; real data passes. Next: Step 6, the rules engine (see `PROTOTYPE_PLAN.md` Step 6).
 
 ## Repository layout
 
@@ -22,7 +22,7 @@ f1/
 ├── super-licence/
 │   ├── pyproject.toml, uv.lock             ← uv project (Python >= 3.14, pytest dev dep, uv_build)
 │   ├── data/                               ← drivers, scales, seasons, standings CSVs
-│   ├── src/super_licence/                  ← models.py, load.py (validate.py, engine.py later)
+│   ├── src/super_licence/                  ← models.py, load.py, validate.py (engine.py next)
 │   ├── tests/                              ← pytest; tests/fixtures/ for deliberately broken CSVs
 │   └── rules/appendix-l/<year>/meta.json   (+ PDF, not committed)
 └── stewards/                  ← later
