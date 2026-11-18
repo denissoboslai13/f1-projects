@@ -48,3 +48,15 @@ class Standing:
     second_source_url: str | None
     status: str
     notes: str | None
+
+@dataclass(frozen=True)
+class SeasonPoints:
+    standing: Standing
+    regulation_year: int
+    scale: Scale
+    base_points: int
+    multiplier: Decimal
+    points: Decimal
+
+    def explain(self) -> str:
+        return f"{self.standing.position} in {self.standing.series_id} {self.standing.season} -> {self.base_points} points as per FIA Appendix L {self.regulation_year} x {self.multiplier} = {self.points}"

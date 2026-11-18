@@ -14,9 +14,10 @@ hand-entered data.
 | 3. Rule data | Done for all 5 series, 2022–2026 (FRECA 2023/2025 fixed 2026-11-07). |
 | 4. Standings | 2023–2025 done for all 5 series (top 10, two sources each, 150 rows, 89 drivers; 2026-11-15). 2026 still to enter. |
 | 5. Loading + validation | Done. 5a 2026-11-14, 5b 2026-11-16 (7 checks + `validate_all`, real data passes, 35 tests). |
-| 6–9 | Not started |
+| 6. Rules engine | 6.1 season points done (2026-11-18): `engine.season_points` + `SeasonPoints` with `explain()`, regulation year from `end_date`, 11 tests. 6.2 year points and 6.3 qualifying windows to do. |
+| 7–9 | Not started |
 
-Last updated: 2026-11-16. Next: Step 6, the rules engine (season points first).
+Last updated: 2026-11-18. Next: Step 6.2, year points (sum a driver's `SeasonPoints` for one year, keep the list for the explanation).
 Optional 5b follow-up: a `validate_all` test with broken input that trips several checks.
 
 ---
