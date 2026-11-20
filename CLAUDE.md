@@ -8,7 +8,7 @@ This is the first project in a personal motorsport section at `myname.dev/f1` (d
 
 Existing sites are hard to read. This project competes on clarity, traceability, and coverage.
 
-**Status (2026-11-18):** Phase 0 partly done. Appendix L 2022–2026 archived and verified against the rule summary. Monorepo created and pushed. Prototype Steps 0–5 done: scales and seasons for all 5 series (2022–2026), standings for all 5 series 2023–2025 (top 10, two sources each, 89 drivers); 2026 standings still to enter. Loaders and `validate.py` (7 cross-file checks + `validate_all`) done with tests; real data passes. Step 6 started: season points (`engine.py`) done with tests. Next: Step 6.2, year points (see `PROTOTYPE_PLAN.md` Step 6).
+**Status (2026-11-20):** Phase 0 partly done. Appendix L 2022–2026 archived and verified against the rule summary. Monorepo created and pushed. Prototype Steps 0–6 done: scales and seasons for all 5 series (2022–2026), standings for all 5 series 2023–2025 (top 10, two sources each, 89 drivers); 2026 standings still to enter. Loaders and `validate.py` (7 cross-file checks + `validate_all`) done with tests; real data passes. Rules engine (`engine.py`: season, year and qualifying points, each with `explain()`) done with tests. Next: close the Step 7 test gaps, then Step 8, real drivers (see `PROTOTYPE_PLAN.md`).
 
 ## Repository layout
 

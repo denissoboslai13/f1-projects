@@ -14,10 +14,20 @@ hand-entered data.
 | 3. Rule data | Done for all 5 series, 2022–2026 (FRECA 2023/2025 fixed 2026-11-07). |
 | 4. Standings | 2023–2025 done for all 5 series (top 10, two sources each, 150 rows, 89 drivers; 2026-11-15). 2026 still to enter. |
 | 5. Loading + validation | Done. 5a 2026-11-14, 5b 2026-11-16 (7 checks + `validate_all`, real data passes, 35 tests). |
-| 6. Rules engine | 6.1 season points done (2026-11-18): `engine.season_points` + `SeasonPoints` with `explain()`, regulation year from `end_date`, 11 tests. 6.2 year points and 6.3 qualifying windows to do. |
-| 7–9 | Not started |
+| 6. Rules engine | Done (2026-11-20). 6.1 `season_points` (2026-11-18), 6.2 `year_points` + `YearPoints` (filters on `regulation_year`), 6.3 `qualifying_points` + `QualifyingPoints` (both windows, totals, window used). Every result has `explain()`, nested with `textwrap.indent`. 18 engine tests, 53 total. |
+| 7. Tests | Partly done alongside Step 6: positions 1/10/11+, SF 2024 vs 2025, multiplier, window (i)/(ii)/equal. Gaps listed below. |
+| 8–9 | Not started |
 
-Last updated: 2026-11-18. Next: Step 6.2, year points (sum a driver's `SeasonPoints` for one year, keep the list for the explanation).
+Last updated: 2026-11-20. Next: close the Step 7 gaps, then Step 8 (check 3–5 real drivers against published totals).
+
+Step 7 gaps:
+- driver with no results (`year_points` and `qualifying_points`: totals 0, 3 `YearPoints` per window)
+- season ending in January of the next year counts in that next year (`year_points`)
+- years inside each window (`[yp.year for yp in result.window_ii]`)
+- `year_points` tests check `len(seasons)`, not which entries: compare `seasons` to the exact tuple
+- `test_q_window_explain` only prints, no asserts; no `YearPoints.explain()` test (incl. empty year)
+- optional: a helper to build test `SeasonPoints` (the `replace(...)` lines repeat)
+
 Optional 5b follow-up: a `validate_all` test with broken input that trips several checks.
 
 ---
@@ -323,6 +333,11 @@ Pure functions, no file reading inside them:
    totals, and which window was used.
 
 - **Done when:** every output includes an explanation, not only a number.
+
+**Decided 2026-11-20:** when window (i) and window (ii) are tied, report window (ii),
+the more recent one. Appendix L only says "the higher"; the total is the same either
+way, so this changes only the label. My own choice, not from an official document.
+`explain()` notes the tie.
 
 ## Step 7: Tests
 
